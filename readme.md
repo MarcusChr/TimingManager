@@ -1,4 +1,4 @@
 To-do:
-- Translate the comments
+- Translate/improve the comments
 - Add examples
 - Format the code
