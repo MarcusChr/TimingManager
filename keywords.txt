@@ -1,0 +1,9 @@
+timingManager	KEYWORD1
+milisec		KEYWORD1
+cycleJob	KEYWORD1
+
+core0	KEYWORD1
+core1	KEYWORD1
+
+addFunction		KEYWORD2
+cycle	KEYWORD2
