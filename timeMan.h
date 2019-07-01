@@ -24,6 +24,15 @@ class timingManager
 	
 	bool secondaryCoreRunning = true; //Standard til True!
     
+	/*
+    enum runType {
+      milisec, cycleJob
+    };
+
+    enum core {
+      core0 = 0, core1 = 1
+    };
+	*/
     struct functionData
     {
       int goal;
@@ -43,6 +52,7 @@ class timingManager
 	
 	static void performWork(timingManager *tmObj, core kerne);
 	static void secondCoreLoop(void * _tmObj);
+	static void updateTimesRan(functionData* currJob, bool _outputWork);
 	
 	public:
 	timingManager(bool _outputWork);
