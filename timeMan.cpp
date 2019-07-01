@@ -91,6 +91,6 @@ void timingManager::addFunction(runType type, int activator, void (*referencToFu
 
 void timingManager::cycle()
 {
-	++counter; //SPEEEEEED! ++cycle > cycle++ i hastighed
+	++counter;
 	performWork(this, core1);
 }

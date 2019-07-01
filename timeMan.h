@@ -22,7 +22,7 @@ class timingManager
     bool secondaryCoreReady = false;
     TaskHandle_t opgaveHandle;
 	
-    bool secondaryCoreRunning = true; //Standard til True!
+	bool secondaryCoreRunning = true; //Standard til True!
     
     struct functionData
     {
