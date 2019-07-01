@@ -85,7 +85,7 @@ void timingManager::addFunction(runType type, int activator, void (*referencToFu
 	if (kerne == core0 && !secondaryCoreReady) {
 		xTaskCreatePinnedToCore(secondCoreLoop, "coreZeroTask", 10000, this, 0, &opgaveHandle, 0); //Beskrivelse: Funktionen som skal køre - navn - størrelse af stakken - parameter (mit tilfælde en reference til min opgavekø) - prioritet - reference til opgaveHandle - kernen
 		secondaryCoreReady = true;
-		if(outputWork) Serial.println("Added task to core0");
+		if (outputWork) Serial.println("Added task to core0");
 	}
 }
 
