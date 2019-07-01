@@ -11,7 +11,7 @@ timingManager::~timingManager()
 	secondaryCoreRunning = false;
 }
 
-void timingManager::updateTimesRan(functionData* currJob, bool _outputWork) 
+void timingManager::updateTimesRan(functionData* currJob, bool _outputWork)
 {
 	if (currJob->runTimes != -1) {
 		if (currJob->runTimes <= ++currJob->timesRan)
