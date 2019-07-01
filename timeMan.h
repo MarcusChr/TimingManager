@@ -22,17 +22,8 @@ class timingManager
     bool secondaryCoreReady = false;
     TaskHandle_t opgaveHandle;
 	
-	bool secondaryCoreRunning = true; //Standard til True!
+    bool secondaryCoreRunning = true; //Standard til True!
     
-	/*
-    enum runType {
-      milisec, cycleJob
-    };
-
-    enum core {
-      core0 = 0, core1 = 1
-    };
-	*/
     struct functionData
     {
       int goal;
