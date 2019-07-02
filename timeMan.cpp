@@ -70,7 +70,7 @@ void timingManager::secondCoreLoop(void* _tmObj)
 }
 
 
-void timingManager::addFunction(runType type, int activator, void (*referencToFunction)(void*), void* _addressOfData, int offset, core kerne, int runCount)
+bool timingManager::addFunction(runType type, int activator, void (*referencToFunction)(void*), void* _addressOfData, int offset, core kerne, int runCount)
 {
 	functionData newJob;
 	newJob.goal = activator;
@@ -80,12 +80,24 @@ void timingManager::addFunction(runType type, int activator, void (*referencToFu
 	newJob.lastTimeRan = millis() + offset;
 	newJob.runTimes = runCount;
 
-	holding[kerne][currentIndex[kerne]++] = newJob; //En enum er en integer "i forklædning", og den kan derfor også bruges som en integer (core0 = 0, core = 1)
-
-	if (kerne == core0 && !secondaryCoreReady) {
-		xTaskCreatePinnedToCore(secondCoreLoop, "coreZeroTask", 10000, this, 0, &opgaveHandle, 0); //Beskrivelse: Funktionen som skal køre - navn - størrelse af stakken - parameter (mit tilfælde en reference til min opgavekø) - prioritet - reference til opgaveHandle - kernen
-		secondaryCoreReady = true;
-		if (outputWork) Serial.println("Added task to core0");
+	if (currentIndex[kerne] < holdingSize) {
+		holding[kerne][currentIndex[kerne]++] = newJob; //En enum er en integer "i forklædning", og den kan derfor også bruges som en integer (core0 = 0, core = 1)
+		if (kerne == core0 && !secondaryCoreReady) {
+			xTaskCreatePinnedToCore(secondCoreLoop, "coreZeroTask", 10000, this, 0, &opgaveHandle, 0); //Beskrivelse: Funktionen som skal køre - navn - størrelse af stakken - parameter (mit tilfælde en reference til min opgavekø) - prioritet - reference til opgaveHandle - kernen
+			secondaryCoreReady = true;
+			if (outputWork) Serial.println("Added task to core0");
+			return true;
+		}
+	}
+	else {
+		for (int i = 0; i < holdingSize; i++) {
+			functionData* currJob = &holding[kerne][i];
+			if (!currJob->enabled) {
+				*currJob = newJob;
+				return true;
+			}
+		}
+		return false;
 	}
 }
 
@@ -94,3 +106,4 @@ void timingManager::cycle()
 	++counter;
 	performWork(this, core1);
 }
+

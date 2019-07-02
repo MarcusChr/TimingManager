@@ -48,6 +48,6 @@ private:
 public:
 	timingManager(bool _outputWork);
 	~timingManager();
-	void addFunction(runType type, int activator, void (*referencToFunction)(void*), void* _addressOfData, int offset = 0, core kerne = core1, int runCount = -1);
+	bool addFunction(runType type, int activator, void (*referencToFunction)(void*), void* _addressOfData, int offset = 0, core kerne = core1, int runCount = -1);
 	void cycle();
 };
