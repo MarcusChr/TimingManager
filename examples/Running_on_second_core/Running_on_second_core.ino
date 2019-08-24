@@ -16,5 +16,5 @@ void setup() {
 }
 
 void loop() {
-  timeMan.cycle(); //This will check/perform the tasks
+  timeMan.cycle();
 }
