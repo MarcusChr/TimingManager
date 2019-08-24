@@ -40,7 +40,7 @@ void timingManager::performWork(timingManager * tmObj, core kerne)
 			}
 			else if (currJob->typeOfCount == milisec) {
 				if (millis() >= (currJob->lastTimeRan + currJob->goal)) {
-					currJob->lastTimeRan = millis(); //Man skal have den nyeste time, derfor genbruges tiden ikke fra tidligere senere.
+					currJob->lastTimeRan = millis(); //Using the newest time (BEFORE) the function has been executed. [Add a way to choose between before and after the execution?]
 					if (tmObj->outputWork) Serial.println("\nPerformed 0x" + String((long)& currJob->functionReference) + " on core" + xPortGetCoreID());
 					currJob->functionReference(currJob->addressOfData);
 					updateTimesRan(currJob, tmObj->outputWork);
@@ -60,7 +60,7 @@ void timingManager::secondCoreLoop(void* _tmObj)
 		/////////////////////////////////////////////
 		/*
 		  Problem: Task watchdog got triggered. The following tasks did not reset the watchdog in time: [...]
-		  Løsning: https://github.com/espressif/esp-idf/issues/1646#issuecomment-413829778
+		  Solution: https://github.com/espressif/esp-idf/issues/1646#issuecomment-413829778
 		*/
 		TIMERG0.wdt_wprotect = TIMG_WDT_WKEY_VALUE;
 		TIMERG0.wdt_feed = 1;
@@ -81,9 +81,9 @@ bool timingManager::addFunction(runType type, int activator, void (*referencToFu
 	newJob.runTimes = runCount;
 
 	if (currentIndex[kerne] < holdingSize) {
-		holding[kerne][currentIndex[kerne]++] = newJob; //En enum er en integer "i forklædning", og den kan derfor også bruges som en integer (core0 = 0, core = 1)
+		holding[kerne][currentIndex[kerne]++] = newJob; //Using the core's value to decide which core-holding to add the task to.
 		if (kerne == core0 && !secondaryCoreReady) {
-			xTaskCreatePinnedToCore(secondCoreLoop, "coreZeroTask", 10000, this, 0, &opgaveHandle, 0); //Beskrivelse: Funktionen som skal køre - navn - størrelse af stakken - parameter (mit tilfælde en reference til min opgavekø) - prioritet - reference til opgaveHandle - kernen
+			xTaskCreatePinnedToCore(secondCoreLoop, "coreZeroTask", 10000, this, 0, &opgaveHandle, 0); //Description: Function to run - name - size of stack - parameter (Reference to the task holding) - priority of this coretask - reference to the taskHandle - the core.
 			secondaryCoreReady = true;
 			if (outputWork) Serial.println("Added task to core0");
 			return true;

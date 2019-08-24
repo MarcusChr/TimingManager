@@ -22,7 +22,7 @@ private:
 	bool secondaryCoreReady = false;
 	TaskHandle_t opgaveHandle;
 
-	bool secondaryCoreRunning = true; //Standard til True!
+	bool secondaryCoreRunning = true; //A way of shutting down the second core when the timingManager destructor is called.
 
 	struct functionData
 	{
@@ -32,8 +32,8 @@ private:
 		runType typeOfCount;
 		int lastTimeRan = 0;
 
-		int runTimes = -1; //Antal gange den skal køre
-		int timesRan = 0; //Antal gange den har kørt
+		int runTimes = -1; //Number of times the task will run. -1 means it will run forever.
+		int timesRan = 0; //This is the number of times the task has run so far.
 		int enabled = true;
 	};
 
