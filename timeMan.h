@@ -1,4 +1,5 @@
 #define holdingSize 64
+#define automaticTicking true
 
 #include "Arduino.h"
 
@@ -37,7 +38,7 @@ private:
 		int enabled = true;
 	};
 
-	int counter = 0;
+	int counter[2] = { 0, 0 };
 	functionData holding[2][holdingSize];
 	int currentIndex[2] = { 0, 0 };
 
@@ -49,5 +50,6 @@ public:
 	timingManager(bool _outputWork);
 	~timingManager();
 	bool addFunction(runType type, int activator, void (*referencToFunction)(void*), void* _addressOfData, int offset = 0, core kerne = core1, int runCount = -1);
+	void tick(core coreToTick);
 	void cycle();
 };

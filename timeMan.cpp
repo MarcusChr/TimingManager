@@ -24,6 +24,12 @@ void timingManager::updateTimesRan(functionData* currJob, bool _outputWork)
 
 void timingManager::performWork(timingManager * tmObj, core kerne)
 {
+#if  automaticTicking
+	++tmObj->counter[kerne];
+#endif //  automaticTicking
+
+
+
 	functionData* jobQueue = tmObj->holding[kerne];
 	for (int i = 0; i < holdingSize; i++)
 	{
@@ -33,7 +39,7 @@ void timingManager::performWork(timingManager * tmObj, core kerne)
 
 		if (currJob->enabled) {
 			if (currJob->typeOfCount == cycleJob) {
-				if (tmObj->counter % currJob->goal == 0) {
+				if (tmObj->counter[kerne] % currJob->goal == 0) {
 					currJob->functionReference(currJob->addressOfData);
 					updateTimesRan(currJob, tmObj->outputWork);
 				}
@@ -101,9 +107,12 @@ bool timingManager::addFunction(runType type, int activator, void (*referencToFu
 	}
 }
 
+void timingManager::tick(core coreToTick) {
+	++counter[coreToTick];
+}
+
 void timingManager::cycle()
 {
-	++counter;
 	performWork(this, core1);
 }
 
