@@ -20,8 +20,8 @@ public:
 
 private:
 	bool outputWork = false;
-	bool secondaryCoreReady = false;
-	TaskHandle_t opgaveHandle;
+	bool coreReady[2] = { false, false };
+	//TaskHandle_t opgaveHandle;
 
 	bool secondaryCoreRunning = true; //A way of shutting down the second core when the timingManager destructor is called.
 
@@ -44,6 +44,7 @@ private:
 
 	static void performWork(timingManager* tmObj, core kerne);
 	static void secondCoreLoop(void* _tmObj);
+	static void primaryCoreLoop(void* _tmObj);
 	static void updateTimesRan(functionData* currJob, bool _outputWork);
 
 public:
@@ -52,4 +53,5 @@ public:
 	bool addFunction(runType type, int activator, void (*referencToFunction)(void*), void* _addressOfData, int offset = 0, core kerne = core1, int runCount = -1);
 	void tick(core coreToTick);
 	void cycle();
+	void startHandlingPrimaryCore(bool killArduinoTask = false);
 };

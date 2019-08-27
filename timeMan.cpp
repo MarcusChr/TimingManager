@@ -59,7 +59,7 @@ void timingManager::performWork(timingManager * tmObj, core kerne)
 void timingManager::secondCoreLoop(void* _tmObj)
 {
 	timingManager* tmObj = (timingManager*)_tmObj;
-	while (tmObj->secondaryCoreRunning)
+	while (tmObj->coreReady[core0])//(tmObj->secondaryCoreRunning)
 	{
 		performWork(tmObj, core0);
 
@@ -72,6 +72,27 @@ void timingManager::secondCoreLoop(void* _tmObj)
 		TIMERG0.wdt_feed = 1;
 		TIMERG0.wdt_wprotect = 0;
 		/////////////////////////////////////////////
+	}
+	vTaskDelete(NULL);
+}
+
+void timingManager::primaryCoreLoop(void* _tmObj) {
+	timingManager* tmObj = (timingManager*)_tmObj;
+	while (tmObj->coreReady[core1]) {
+		performWork(tmObj, core1);
+	}
+	vTaskDelete(NULL);
+}
+
+void timingManager::startHandlingPrimaryCore(bool killArduinoTask) { //This will add a job 
+
+	if (!coreReady[core1]) {
+		coreReady[core1] = true;
+		if (outputWork) Serial.println("Added task to primary core!");
+		xTaskCreatePinnedToCore(primaryCoreLoop, "coreOneTask", 10000, this, 1, NULL, core1); //Description: Function to run - name - size of stack - parameter (Reference to the task holding) - priority of this coretask - reference to the taskHandle - the core.
+		if (killArduinoTask) {
+			vTaskDelete(NULL);
+		}
 	}
 }
 
@@ -88,9 +109,9 @@ bool timingManager::addFunction(runType type, int activator, void (*referencToFu
 
 	if (currentIndex[kerne] < holdingSize) {
 		holding[kerne][currentIndex[kerne]++] = newJob; //Using the core's value to decide which core-holding to add the task to.
-		if (kerne == core0 && !secondaryCoreReady) {
-			xTaskCreatePinnedToCore(secondCoreLoop, "coreZeroTask", 10000, this, 0, &opgaveHandle, 0); //Description: Function to run - name - size of stack - parameter (Reference to the task holding) - priority of this coretask - reference to the taskHandle - the core.
-			secondaryCoreReady = true;
+		if (kerne == core0 && !coreReady[core0]) {
+			coreReady[core0] = true;
+			xTaskCreatePinnedToCore(secondCoreLoop, "coreZeroTask", 10000, this, 0, NULL, core0); //Description: Function to run - name - size of stack - parameter (Reference to the task holding) - priority of this coretask - reference to the taskHandle - the core.
 			if (outputWork) Serial.println("Added task to core0");
 			return true;
 		}
