@@ -47,7 +47,7 @@ void timingManager::performWork(timingManager* tmObj, core kerne)
 
 	FunctionNode* currentNode = tmObj->linkedListCoreHead[kerne];
 
-	while (currentNode != nullptr)
+	while (currentNode != nullptr && currentNode->data.functionReference != nullptr)
 	{
 		functionData* currJob = &currentNode->data;
 
@@ -67,9 +67,9 @@ void timingManager::performWork(timingManager* tmObj, core kerne)
 		}
 
 		if (isJobFinished(currJob)) {
-			FunctionNode* nextNode = nullptr;
+			FunctionNode* nextNode = currentNode->next;
 
-			nextNode = currentNode->next;
+			//nextNode = currentNode->next;
 
 			if(currentNode->prev != nullptr)
 			{
@@ -83,14 +83,13 @@ void timingManager::performWork(timingManager* tmObj, core kerne)
 			{
 				nextNode->prev = currentNode->prev;
 			}
-
 			
 			if (tmObj->outputWork) Serial.println("0x" + String((unsigned long)currentNode) + " (Function reference:0x" + String((long)&currJob->functionReference) + ") - task is now disabled..");
 			free(currentNode);
 
 			if (nextNode != nullptr)
 			{
-				*currentNode = *nextNode;
+				currentNode = nextNode;
 			}
 			else {
 				currentNode = nullptr;
@@ -146,6 +145,14 @@ void timingManager::printChain()
 {
 	String startOfChainMessage = "#################Start of chain#################";
 	Serial.println(startOfChainMessage);
+	int totalMemPerNode = sizeof(functionData) + sizeof(FunctionNode);
+	int freeHeapMem = xPortGetFreeHeapSize();
+
+	Serial.println("Size of node: " + String(sizeof(FunctionNode)) + " bytes");
+	Serial.println("Size of task: " + String(sizeof(functionData)) + " bytes");
+	Serial.println("Total:        " + String(totalMemPerNode) + " bytes");
+	Serial.println(String(freeHeapMem) + " bytes free");
+	Serial.println("Theoretical limit: " + String(floor(freeHeapMem / totalMemPerNode)));
 
 	for (int kerne = 0; kerne < 2; kerne++)
 	{

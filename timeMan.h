@@ -45,7 +45,7 @@ private:
 	};
 
 	int counter[2] = { 0, 0 };
-	functionData holding[2][holdingSize];
+	//functionData holding[2][holdingSize];
 
 	FunctionNode* linkedListCoreHead[2];
 	//FunctionNode* linkedListCoreTail[2];
