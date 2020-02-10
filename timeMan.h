@@ -10,12 +10,12 @@
 class timingManager
 {
 public:
-	enum runType {
-		milisec, cycleJob
+	enum RunType {
+		MILISEC, CYCLEJOB
 	};
 
-	enum core {
-		core0 = 0, core1 = 1
+	enum Core {
+		CORE0 = 0, CORE1 = 1
 	};
 
 private:
@@ -30,7 +30,7 @@ private:
 		int goal;
 		void (*functionReference)(void*);
 		void* addressOfData;
-		runType typeOfCount;
+		RunType typeOfCount;
 		int lastTimeRan = 0;
 
 		int runTimes = -1; //Number of times the task will run. -1 means it will run forever.
@@ -45,14 +45,9 @@ private:
 	};
 
 	int counter[2] = { 0, 0 };
-	//functionData holding[2][holdingSize];
-
 	FunctionNode* linkedListCoreHead[2];
-	//FunctionNode* linkedListCoreTail[2];
 
-	int currentIndex[2] = { 0, 0 };
-
-	static void performWork(timingManager* tmObj, core kerne);
+	static void performWork(timingManager* tmObj, Core core);
 	static void secondCoreLoop(void* _tmObj);
 	static void primaryCoreLoop(void* _tmObj);
 	[[deprecated]]
@@ -62,8 +57,8 @@ private:
 public:
 	timingManager(bool _outputWork);
 	~timingManager();
-	void addFunction(runType type, int activator, void (*referencToFunction)(void*), void* _addressOfData, int offset = 0, core kerne = core1, int runCount = -1);
-	void tick(core coreToTick);
+	void addFunction(RunType type, int activator, void (*referencToFunction)(void*), void* _addressOfData, int offset = 0, Core kerne = CORE1, int runCount = -1);
+	void tick(Core coreToTick);
 	void cycle();
 	void startHandlingPrimaryCore(bool killArduinoTask = false);
 	void printChain();
