@@ -8,7 +8,10 @@ timingManager::timingManager(bool _outputWork = false)
 
 timingManager::~timingManager()
 {
-	secondaryCoreRunning = false;
+	//secondaryCoreRunning = false;
+	coreReady[0] = false;
+	coreReady[1] = false;
+	Serial.println("Deconstructor called!");
 }
 
 bool timingManager::isJobFinished(functionData* currJob)
@@ -58,10 +61,9 @@ void timingManager::performWork(timingManager* tmObj, Core core)
 			if (currentNode->prev != nullptr)
 			{
 				currentNode->prev->next = nextNode;
-
 			}
 			else {
-				tmObj->linkedListCoreHead[core] = nextNode;//currentNode->next;
+				tmObj->linkedListCoreHead[core] = nextNode;
 			}
 
 			if (nextNode != nullptr)
@@ -155,7 +157,7 @@ void timingManager::printChain()
 	Serial.print("\n");
 }
 
-void timingManager::addFunction(RunType type, unsigned int activator, void (*referencToFunction)(void*), void* _addressOfData, int offset, Core kerne, unsigned int runCount)
+void timingManager::addFunction(RunType type, unsigned int activator, void (*referencToFunction)(void*), void* _addressOfData, int offset, Core core, unsigned int runCount)
 {
 	functionData newJob;
 	newJob.goal = activator;
@@ -165,8 +167,8 @@ void timingManager::addFunction(RunType type, unsigned int activator, void (*ref
 	newJob.lastTimeRan = millis() + offset;
 	newJob.runTimes = runCount;
 
-	if (outputWork) Serial.println("Adding task to core" + String(kerne));
-	FunctionNode* previousNode = linkedListCoreHead[kerne];
+	if (outputWork) Serial.println("Adding task to core" + String(core));
+	FunctionNode* previousNode = linkedListCoreHead[core];
 
 	FunctionNode* functionNodeToAdd = new FunctionNode();
 	if (outputWork) Serial.println("Created new object in HEAP memory.");
@@ -177,18 +179,18 @@ void timingManager::addFunction(RunType type, unsigned int activator, void (*ref
 		if (outputWork) Serial.print("Set the head of the LinkedList");
 	}
 	else {
-		functionNodeToAdd->next = linkedListCoreHead[kerne];
-		linkedListCoreHead[kerne]->prev = functionNodeToAdd;
+		functionNodeToAdd->next = linkedListCoreHead[core];
+		linkedListCoreHead[core]->prev = functionNodeToAdd;
 
 		if (outputWork) Serial.println(String((unsigned long)functionNodeToAdd->prev) + ":|" + String((unsigned long)functionNodeToAdd) + "|:" + String((unsigned long)functionNodeToAdd->next));
 		if (outputWork) Serial.print("Changed the head of the LinkedList");
 	}
-	if (outputWork) Serial.println("\nCORE" + String(kerne) + " -> " + String((unsigned long)functionNodeToAdd->prev) + ":|" + String((unsigned long)functionNodeToAdd) + "|:" + String((unsigned long)functionNodeToAdd->next));
-	linkedListCoreHead[kerne] = functionNodeToAdd;
+	if (outputWork) Serial.println("\nCORE" + String(core) + " -> " + String((unsigned long)functionNodeToAdd->prev) + ":|" + String((unsigned long)functionNodeToAdd) + "|:" + String((unsigned long)functionNodeToAdd->next));
+	linkedListCoreHead[core] = functionNodeToAdd;
 
-	if (outputWork) Serial.println("[" + String(kerne) + "]");
+	if (outputWork) Serial.println("[" + String(core) + "]");
 
-	if (kerne == CORE0 && !coreReady[CORE0]) {
+	if (core == CORE0 && !coreReady[CORE0]) {
 		coreReady[CORE0] = true;
 		xTaskCreatePinnedToCore(secondCoreLoop, "coreZeroTask", 10000, this, 0, NULL, CORE0); //Description: Function to run - name - size of stack - parameter (Reference to the task holding) - priority of this coretask - reference to the taskHandle - the core.
 		if (outputWork) Serial.println("Added task to CORE0");

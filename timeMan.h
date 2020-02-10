@@ -21,9 +21,6 @@ public:
 private:
 	bool outputWork = false;
 	bool coreReady[2] = { false, false };
-	//TaskHandle_t opgaveHandle;
-
-	bool secondaryCoreRunning = true; //A way of shutting down the second core when the timingManager destructor is called.
 
 	struct functionData
 	{
