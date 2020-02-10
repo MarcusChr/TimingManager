@@ -38,20 +38,33 @@ private:
 		int enabled = true;
 	};
 
+	struct FunctionNode {
+		functionData data;
+		FunctionNode* next;
+		FunctionNode* prev;
+	};
+
 	int counter[2] = { 0, 0 };
-	functionData holding[2][holdingSize];
+	//functionData holding[2][holdingSize];
+
+	FunctionNode* linkedListCoreHead[2];
+	//FunctionNode* linkedListCoreTail[2];
+
 	int currentIndex[2] = { 0, 0 };
 
 	static void performWork(timingManager* tmObj, core kerne);
 	static void secondCoreLoop(void* _tmObj);
 	static void primaryCoreLoop(void* _tmObj);
+	[[deprecated]]
 	static void updateTimesRan(functionData* currJob, bool _outputWork);
+	static bool isJobFinished(functionData* currJob);
 
 public:
 	timingManager(bool _outputWork);
 	~timingManager();
-	bool addFunction(runType type, int activator, void (*referencToFunction)(void*), void* _addressOfData, int offset = 0, core kerne = core1, int runCount = -1);
+	void addFunction(runType type, int activator, void (*referencToFunction)(void*), void* _addressOfData, int offset = 0, core kerne = core1, int runCount = -1);
 	void tick(core coreToTick);
 	void cycle();
 	void startHandlingPrimaryCore(bool killArduinoTask = false);
+	void printChain();
 };
