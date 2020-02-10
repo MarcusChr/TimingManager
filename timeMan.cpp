@@ -55,15 +55,13 @@ void timingManager::performWork(timingManager* tmObj, Core core)
 		if (isJobFinished(currJob)) {
 			FunctionNode* nextNode = currentNode->next;
 
-			//nextNode = currentNode->next;
-
 			if (currentNode->prev != nullptr)
 			{
 				currentNode->prev->next = nextNode;
 
 			}
 			else {
-				tmObj->linkedListCoreHead[core] = currentNode->next;
+				tmObj->linkedListCoreHead[core] = nextNode;//currentNode->next;
 			}
 
 			if (nextNode != nullptr)
