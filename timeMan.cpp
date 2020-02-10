@@ -3,7 +3,6 @@
 timingManager::timingManager(bool _outputWork = false)
 {
 	outputWork = _outputWork;
-	//memset(holding, 0x00, sizeof(holding));
 	memset(linkedListCoreHead, 0x00, sizeof(linkedListCoreHead));
 }
 
@@ -12,24 +11,11 @@ timingManager::~timingManager()
 	secondaryCoreRunning = false;
 }
 
-[[deprecated]]
-void timingManager::updateTimesRan(functionData* currJob, bool _outputWork)
-{
-	if (currJob->runTimes != -1) {
-		if (currJob->runTimes <= ++currJob->timesRan)
-		{
-			if (_outputWork) Serial.println("0x" + String((long)& currJob) + " - task is now disabled..");
-			currJob->enabled = false;
-		}
-	}
-}
-
-
 bool timingManager::isJobFinished(functionData* currJob)
 {
 	bool finished = false;
 
-	if (currJob->runTimes != -1) {
+	if (currJob->runTimes != 0) {
 		if (currJob->runTimes <= currJob->timesRan)
 		{
 			finished = true;
@@ -39,25 +25,25 @@ bool timingManager::isJobFinished(functionData* currJob)
 	return finished;
 }
 
-void timingManager::performWork(timingManager* tmObj, core kerne)
+void timingManager::performWork(timingManager* tmObj, Core core)
 {
 #if  automaticTicking
-	++tmObj->counter[kerne];
+	++tmObj->counter[core];
 #endif //  automaticTicking
 
-	FunctionNode* currentNode = tmObj->linkedListCoreHead[kerne];
+	FunctionNode* currentNode = tmObj->linkedListCoreHead[core];
 
 	while (currentNode != nullptr && currentNode->data.functionReference != nullptr)
 	{
 		functionData* currJob = &currentNode->data;
 
-		if (currJob->typeOfCount == cycleJob) {
-			if (tmObj->counter[kerne] % currJob->goal == 0) {
+		if (currJob->typeOfCount == CYCLEJOB) {
+			if (tmObj->counter[core] % currJob->goal == 0) {
 				currJob->functionReference(currJob->addressOfData);
 				++currJob->timesRan;
 			}
 		}
-		else if (currJob->typeOfCount == milisec) {
+		else if (currJob->typeOfCount == MILISEC) {
 			if (millis() >= (currJob->lastTimeRan + currJob->goal)) {
 				currJob->lastTimeRan = millis(); //Using the newest time (BEFORE) the function has been executed. [Add a way to choose between before and after the execution?]
 				if (tmObj->outputWork) Serial.println("\nPerformed 0x" + String((unsigned long)currentNode) + " (Function reference:0x" + String((long)&currJob->functionReference) + ") on core" + xPortGetCoreID());
@@ -71,19 +57,20 @@ void timingManager::performWork(timingManager* tmObj, core kerne)
 
 			//nextNode = currentNode->next;
 
-			if(currentNode->prev != nullptr)
+			if (currentNode->prev != nullptr)
 			{
 				currentNode->prev->next = nextNode;
 
-			} else {
-				tmObj->linkedListCoreHead[kerne] = currentNode->next;
+			}
+			else {
+				tmObj->linkedListCoreHead[core] = currentNode->next;
 			}
 
-			if (nextNode != nullptr) 
+			if (nextNode != nullptr)
 			{
 				nextNode->prev = currentNode->prev;
 			}
-			
+
 			if (tmObj->outputWork) Serial.println("0x" + String((unsigned long)currentNode) + " (Function reference:0x" + String((long)&currJob->functionReference) + ") - task is now disabled..");
 			free(currentNode);
 
@@ -104,9 +91,9 @@ void timingManager::performWork(timingManager* tmObj, core kerne)
 void timingManager::secondCoreLoop(void* _tmObj)
 {
 	timingManager* tmObj = (timingManager*)_tmObj;
-	while (tmObj->coreReady[core0])//(tmObj->secondaryCoreRunning)
+	while (tmObj->coreReady[CORE0])//(tmObj->secondaryCoreRunning)
 	{
-		performWork(tmObj, core0);
+		performWork(tmObj, CORE0);
 
 		/////////////////////////////////////////////
 		/*
@@ -123,18 +110,18 @@ void timingManager::secondCoreLoop(void* _tmObj)
 
 void timingManager::primaryCoreLoop(void* _tmObj) {
 	timingManager* tmObj = (timingManager*)_tmObj;
-	while (tmObj->coreReady[core1]) {
-		performWork(tmObj, core1);
+	while (tmObj->coreReady[CORE1]) {
+		performWork(tmObj, CORE1);
 	}
 	vTaskDelete(NULL);
 }
 
 void timingManager::startHandlingPrimaryCore(bool killArduinoTask) { //This will add a job 
 
-	if (!coreReady[core1]) {
-		coreReady[core1] = true;
+	if (!coreReady[CORE1]) {
+		coreReady[CORE1] = true;
 		if (outputWork) Serial.println("Added task to primary core!");
-		xTaskCreatePinnedToCore(primaryCoreLoop, "coreOneTask", 10000, this, 1, NULL, core1); //Description: Function to run - name - size of stack - parameter (Reference to the task holding) - priority of this coretask - reference to the taskHandle - the core.
+		xTaskCreatePinnedToCore(primaryCoreLoop, "coreOneTask", 10000, this, 1, NULL, CORE1); //Description: Function to run - name - size of stack - parameter (Reference to the task holding) - priority of this coretask - reference to the taskHandle - the core.
 		if (killArduinoTask) {
 			vTaskDelete(NULL);
 		}
@@ -151,6 +138,8 @@ void timingManager::printChain()
 	Serial.println("Size of node: " + String(sizeof(FunctionNode)) + " bytes");
 	Serial.println("Size of task: " + String(sizeof(functionData)) + " bytes");
 	Serial.println("Total:        " + String(totalMemPerNode) + " bytes");
+	Serial.println("Size of this: " + String(sizeof(*this)) + " bytes");
+
 	Serial.println(String(freeHeapMem) + " bytes free");
 	Serial.println("Theoretical limit: " + String(floor(freeHeapMem / totalMemPerNode)));
 
@@ -168,8 +157,7 @@ void timingManager::printChain()
 	Serial.print("\n");
 }
 
-
-void timingManager::addFunction(runType type, int activator, void (*referencToFunction)(void*), void* _addressOfData, int offset, core kerne, int runCount)
+void timingManager::addFunction(RunType type, unsigned int activator, void (*referencToFunction)(void*), void* _addressOfData, int offset, Core kerne, unsigned int runCount)
 {
 	functionData newJob;
 	newJob.goal = activator;
@@ -183,10 +171,10 @@ void timingManager::addFunction(runType type, int activator, void (*referencToFu
 	FunctionNode* previousNode = linkedListCoreHead[kerne];
 
 	FunctionNode* functionNodeToAdd = new FunctionNode();
-	Serial.println("Created new object in HEAP memory.");
+	if (outputWork) Serial.println("Created new object in HEAP memory.");
 	functionNodeToAdd->data = newJob;
 
-	Serial.print("\n");
+	if (outputWork) Serial.print("\n");
 	if (previousNode == nullptr) {
 		if (outputWork) Serial.print("Set the head of the LinkedList");
 	}
@@ -194,29 +182,26 @@ void timingManager::addFunction(runType type, int activator, void (*referencToFu
 		functionNodeToAdd->next = linkedListCoreHead[kerne];
 		linkedListCoreHead[kerne]->prev = functionNodeToAdd;
 
-		Serial.println(String((unsigned long)functionNodeToAdd->prev) + ":|" + String((unsigned long)functionNodeToAdd) + "|:" + String((unsigned long)functionNodeToAdd->next));
-
-		//linkedListCoreHead[kerne] = functionNodeToAdd;
+		if (outputWork) Serial.println(String((unsigned long)functionNodeToAdd->prev) + ":|" + String((unsigned long)functionNodeToAdd) + "|:" + String((unsigned long)functionNodeToAdd->next));
 		if (outputWork) Serial.print("Changed the head of the LinkedList");
 	}
-	Serial.println("\nCORE" + String(kerne) +" -> " + String((unsigned long)functionNodeToAdd->prev) + ":|" + String((unsigned long)functionNodeToAdd) + "|:" + String((unsigned long)functionNodeToAdd->next));
+	if (outputWork) Serial.println("\nCORE" + String(kerne) + " -> " + String((unsigned long)functionNodeToAdd->prev) + ":|" + String((unsigned long)functionNodeToAdd) + "|:" + String((unsigned long)functionNodeToAdd->next));
 	linkedListCoreHead[kerne] = functionNodeToAdd;
 
-	Serial.println("[" + String(kerne) + "]");
+	if (outputWork) Serial.println("[" + String(kerne) + "]");
 
-	if (kerne == core0 && !coreReady[core0]) {
-		coreReady[core0] = true;
-		xTaskCreatePinnedToCore(secondCoreLoop, "coreZeroTask", 10000, this, 0, NULL, core0); //Description: Function to run - name - size of stack - parameter (Reference to the task holding) - priority of this coretask - reference to the taskHandle - the core.
-		if (outputWork) Serial.println("Added task to core0");
+	if (kerne == CORE0 && !coreReady[CORE0]) {
+		coreReady[CORE0] = true;
+		xTaskCreatePinnedToCore(secondCoreLoop, "coreZeroTask", 10000, this, 0, NULL, CORE0); //Description: Function to run - name - size of stack - parameter (Reference to the task holding) - priority of this coretask - reference to the taskHandle - the core.
+		if (outputWork) Serial.println("Added task to CORE0");
 	}
 }
 
-void timingManager::tick(core coreToTick) {
+void timingManager::tick(Core coreToTick) {
 	++counter[coreToTick];
 }
 
 void timingManager::cycle()
 {
-	performWork(this, core1);
+	performWork(this, CORE1);
 }
-
