@@ -11,24 +11,11 @@ timingManager::~timingManager()
 	secondaryCoreRunning = false;
 }
 
-[[deprecated]]
-void timingManager::updateTimesRan(functionData* currJob, bool _outputWork)
-{
-	if (currJob->runTimes != -1) {
-		if (currJob->runTimes <= ++currJob->timesRan)
-		{
-			if (_outputWork) Serial.println("0x" + String((long)&currJob) + " - task is now disabled..");
-			currJob->enabled = false;
-		}
-	}
-}
-
-
 bool timingManager::isJobFinished(functionData* currJob)
 {
 	bool finished = false;
 
-	if (currJob->runTimes != -1) {
+	if (currJob->runTimes != 0) {
 		if (currJob->runTimes <= currJob->timesRan)
 		{
 			finished = true;
@@ -151,6 +138,8 @@ void timingManager::printChain()
 	Serial.println("Size of node: " + String(sizeof(FunctionNode)) + " bytes");
 	Serial.println("Size of task: " + String(sizeof(functionData)) + " bytes");
 	Serial.println("Total:        " + String(totalMemPerNode) + " bytes");
+	Serial.println("Size of this: " + String(sizeof(*this)) + " bytes");
+
 	Serial.println(String(freeHeapMem) + " bytes free");
 	Serial.println("Theoretical limit: " + String(floor(freeHeapMem / totalMemPerNode)));
 
@@ -168,8 +157,7 @@ void timingManager::printChain()
 	Serial.print("\n");
 }
 
-
-void timingManager::addFunction(RunType type, int activator, void (*referencToFunction)(void*), void* _addressOfData, int offset, Core kerne, int runCount)
+void timingManager::addFunction(RunType type, unsigned int activator, void (*referencToFunction)(void*), void* _addressOfData, int offset, Core kerne, unsigned int runCount)
 {
 	functionData newJob;
 	newJob.goal = activator;

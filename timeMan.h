@@ -27,15 +27,14 @@ private:
 
 	struct functionData
 	{
-		int goal;
+		unsigned int goal;
 		void (*functionReference)(void*);
 		void* addressOfData;
 		RunType typeOfCount;
-		int lastTimeRan = 0;
+		unsigned int lastTimeRan = 0;
 
-		int runTimes = -1; //Number of times the task will run. -1 means it will run forever.
-		int timesRan = 0; //This is the number of times the task has run so far.
-		int enabled = true;
+		unsigned int runTimes = 0; //Number of times the task will run. 0 means it will run forever.
+		unsigned int timesRan = 0; //This is the number of times the task has run so far.
 	};
 
 	struct FunctionNode {
@@ -50,14 +49,12 @@ private:
 	static void performWork(timingManager* tmObj, Core core);
 	static void secondCoreLoop(void* _tmObj);
 	static void primaryCoreLoop(void* _tmObj);
-	[[deprecated]]
-	static void updateTimesRan(functionData* currJob, bool _outputWork);
 	static bool isJobFinished(functionData* currJob);
 
 public:
 	timingManager(bool _outputWork);
 	~timingManager();
-	void addFunction(RunType type, int activator, void (*referencToFunction)(void*), void* _addressOfData, int offset = 0, Core kerne = CORE1, int runCount = -1);
+	void addFunction(RunType type, unsigned int activator, void (*referencToFunction)(void*), void* _addressOfData, int offset = 0, Core kerne = CORE1, unsigned int runCount = 0);
 	void tick(Core coreToTick);
 	void cycle();
 	void startHandlingPrimaryCore(bool killArduinoTask = false);
