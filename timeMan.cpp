@@ -1,20 +1,30 @@
 #include "timeMan.h"
 
-timingManager::timingManager(bool _outputWork = false)
+TimingManager* TimingManager::instance = nullptr;
+
+TimingManager::TimingManager(bool _outputWork = false)
 {
 	outputWork = _outputWork;
 	memset(linkedListCoreHead, 0x00, sizeof(linkedListCoreHead));
 }
 
-timingManager::~timingManager()
+TimingManager::~TimingManager()
 {
-	//secondaryCoreRunning = false;
-	coreReady[0] = false;
-	coreReady[1] = false;
-	Serial.println("Deconstructor called!");
+	coreDeathSignal = true;
+	if (!coreReady[1] || true) {
+		performWork(this, Core::CORE1);
+	}
+
+	if (!coreReady[0]) {
+		performWork(this, Core::CORE0);
+	}
+
+	if(outputWork) Serial.println("Deconstructor called!");
+	clearTaskList(Core::CORE1);
+	TimingManager::instance = nullptr;
 }
 
-bool timingManager::isJobFinished(functionData* currJob)
+bool TimingManager::isJobFinished(functionData* currJob)
 {
 	bool finished = false;
 
@@ -28,30 +38,55 @@ bool timingManager::isJobFinished(functionData* currJob)
 	return finished;
 }
 
-void timingManager::performWork(timingManager* tmObj, Core core)
+int TimingManager::clearTaskList(Core core)
 {
+	unsigned int clearedNodes = 0;
+
+	FunctionNode* currentNode = linkedListCoreHead[core];
+	while (currentNode != nullptr) {
+		FunctionNode* nextNode = currentNode->next;
+		if (outputWork) Serial.println(getCorePrefix(core) + " Freeing 0x" + String((unsigned long)currentNode));
+		free(currentNode);
+		currentNode = nextNode;
+		++clearedNodes;
+	}
+	if (outputWork) Serial.println(getCorePrefix(core) + "Freed " + String(clearedNodes) + " nodes");
+	return clearedNodes;
+}
+
+String TimingManager::getCorePrefix(Core core)
+{
+	return "[CORE" + String(core) + "]";
+}
+
+void TimingManager::performWork(TimingManager* tmObj, Core core)
+{
+	unsigned int disabledThisRound = 0;
+
 #if  automaticTicking
 	++tmObj->counter[core];
 #endif //  automaticTicking
 
 	FunctionNode* currentNode = tmObj->linkedListCoreHead[core];
+	bool deathSignal = tmObj->coreDeathSignal;
 
 	while (currentNode != nullptr && currentNode->data.functionReference != nullptr)
 	{
 		functionData* currJob = &currentNode->data;
-
-		if (currJob->typeOfCount == CYCLEJOB) {
-			if (tmObj->counter[core] % currJob->goal == 0) {
-				currJob->functionReference(currJob->addressOfData);
-				++currJob->timesRan;
+		if (!deathSignal) {
+			if (currJob->typeOfCount == CYCLEJOB) {
+				if (tmObj->counter[core] % currJob->goal == 0) {
+					currJob->functionReference(currJob->addressOfData);
+					++currJob->timesRan;
+				}
 			}
-		}
-		else if (currJob->typeOfCount == MILISEC) {
-			if (millis() >= (currJob->lastTimeRan + currJob->goal)) {
-				currJob->lastTimeRan = millis(); //Using the newest time (BEFORE) the function has been executed. [Add a way to choose between before and after the execution?]
-				if (tmObj->outputWork) Serial.println("\nPerformed 0x" + String((unsigned long)currentNode) + " (Function reference:0x" + String((long)&currJob->functionReference) + ") on core" + xPortGetCoreID());
-				currJob->functionReference(currJob->addressOfData);
-				++currJob->timesRan;
+			else if (currJob->typeOfCount == MILISEC) {
+				if (millis() >= (currJob->lastTimeRan + currJob->goal)) {
+					currJob->lastTimeRan = millis(); //Using the newest time (BEFORE) the function has been executed. [Add a way to choose between before and after the execution?]
+					if (tmObj->outputWork) Serial.println("\nPerformed 0x" + String((unsigned long)currentNode) + " (Function reference:0x" + String((long)&currJob->functionReference) + ") on core" + xPortGetCoreID());
+					currJob->functionReference(currJob->addressOfData);
+					++currJob->timesRan;
+				}
 			}
 		}
 
@@ -70,8 +105,7 @@ void timingManager::performWork(timingManager* tmObj, Core core)
 			{
 				nextNode->prev = currentNode->prev;
 			}
-
-			if (tmObj->outputWork) Serial.println("0x" + String((unsigned long)currentNode) + " (Function reference:0x" + String((long)&currJob->functionReference) + ") - task is now disabled..");
+			if (tmObj->outputWork) Serial.println("[CORE" + String(core) + "|" + String(++disabledThisRound) + "]: 0x" + String((unsigned long)currentNode) + " (Function reference:0x" + String((long)&currJob->functionReference) + ") - task is now disabled..");
 			free(currentNode);
 
 			if (nextNode != nullptr)
@@ -88,10 +122,11 @@ void timingManager::performWork(timingManager* tmObj, Core core)
 	}
 }
 
-void timingManager::secondCoreLoop(void* _tmObj)
+
+void TimingManager::secondCoreLoop(void* _tmObj)
 {
-	timingManager* tmObj = (timingManager*)_tmObj;
-	while (tmObj->coreReady[CORE0])//(tmObj->secondaryCoreRunning)
+	TimingManager* tmObj = (TimingManager*)_tmObj;
+	while (tmObj->coreReady[CORE0] && !tmObj->coreDeathSignal)
 	{
 		performWork(tmObj, CORE0);
 
@@ -105,18 +140,22 @@ void timingManager::secondCoreLoop(void* _tmObj)
 		TIMERG0.wdt_wprotect = 0;
 		/////////////////////////////////////////////
 	}
+	tmObj->clearTaskList(Core::CORE0);
+	if (outputWork) Serial.println("Killing own task (core0)");
 	vTaskDelete(NULL);
 }
 
-void timingManager::primaryCoreLoop(void* _tmObj) {
-	timingManager* tmObj = (timingManager*)_tmObj;
-	while (tmObj->coreReady[CORE1]) {
+void TimingManager::primaryCoreLoop(void* _tmObj) {
+	TimingManager* tmObj = (TimingManager*)_tmObj;
+	while (tmObj->coreReady[CORE1] && !tmObj->coreDeathSignal) {
 		performWork(tmObj, CORE1);
 	}
+
+	if (outputWork) Serial.println("Killing own task (core1)");
 	vTaskDelete(NULL);
 }
 
-void timingManager::startHandlingPrimaryCore(bool killArduinoTask) { //This will add a job 
+void TimingManager::startHandlingPrimaryCore(bool killArduinoTask) { //This will add a job 
 
 	if (!coreReady[CORE1]) {
 		coreReady[CORE1] = true;
@@ -128,7 +167,7 @@ void timingManager::startHandlingPrimaryCore(bool killArduinoTask) { //This will
 	}
 }
 
-void timingManager::printChain()
+void TimingManager::printChain()
 {
 	String startOfChainMessage = "#################Start of chain#################";
 	Serial.println(startOfChainMessage);
@@ -157,7 +196,22 @@ void timingManager::printChain()
 	Serial.print("\n");
 }
 
-void timingManager::addFunction(RunType type, unsigned int activator, void (*referencToFunction)(void*), void* _addressOfData, int offset, Core core, unsigned int runCount)
+void TimingManager::setOutputWork(bool state)
+{
+	outputWork = state;
+}
+
+TimingManager* TimingManager::getInstance()
+{
+	if(instance == nullptr)
+	{
+		instance = new TimingManager();
+	}
+
+	return instance;
+}
+
+void TimingManager::addFunction(RunType type, unsigned int activator, void (*referencToFunction)(void*), void* _addressOfData, int offset, Core core, unsigned int runCount)
 {
 	functionData newJob;
 	newJob.goal = activator;
@@ -167,7 +221,7 @@ void timingManager::addFunction(RunType type, unsigned int activator, void (*ref
 	newJob.lastTimeRan = millis() + offset;
 	newJob.runTimes = runCount;
 
-	if (outputWork) Serial.println("Adding task to core" + String(core));
+	if (outputWork) Serial.println("Adding task to CORE" + String(core));
 	FunctionNode* previousNode = linkedListCoreHead[core];
 
 	FunctionNode* functionNodeToAdd = new FunctionNode();
@@ -197,11 +251,11 @@ void timingManager::addFunction(RunType type, unsigned int activator, void (*ref
 	}
 }
 
-void timingManager::tick(Core coreToTick) {
+void TimingManager::tick(Core coreToTick) {
 	++counter[coreToTick];
 }
 
-void timingManager::cycle()
+void TimingManager::cycle()
 {
 	performWork(this, CORE1);
 }

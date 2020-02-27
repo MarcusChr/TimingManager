@@ -1,4 +1,4 @@
-timingManager	KEYWORD1
+TimingManager	KEYWORD1
 MILISEC		KEYWORD1
 CYCLEJOB	KEYWORD1
 
@@ -7,3 +7,9 @@ CORE1	KEYWORD1
 
 addFunction		KEYWORD2
 cycle	KEYWORD2
+getInstance	KEYWORD2
+clearTaskList	KEYWORD2
+tick	KEYWORD2
+startHandlingPrimaryCore	KEYWORD2
+printChain	KEYWORD2
+setOutputWork	KEYWORD2
