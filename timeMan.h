@@ -1,4 +1,3 @@
-#define holdingSize 64
 #define automaticTicking true
 
 #include "Arduino.h"
@@ -7,7 +6,7 @@
 #include "soc/timer_group_reg.h"
 #include "esp_system.h"
 
-class timingManager
+class TimingManager
 {
 public:
 	enum RunType {
@@ -20,7 +19,13 @@ public:
 
 private:
 	bool outputWork = false;
+	bool coreDeathSignal = false;
 	bool coreReady[2] = { false, false };
+
+	static TimingManager* instance;
+	TimingManager(bool _outputWork);
+
+
 
 	struct functionData
 	{
@@ -43,17 +48,21 @@ private:
 	int counter[2] = { 0, 0 };
 	FunctionNode* linkedListCoreHead[2];
 
-	static void performWork(timingManager* tmObj, Core core);
+	static void performWork(TimingManager* tmObj, Core core);
 	static void secondCoreLoop(void* _tmObj);
 	static void primaryCoreLoop(void* _tmObj);
 	static bool isJobFinished(functionData* currJob);
+	
+	static String getCorePrefix(Core core);
 
 public:
-	timingManager(bool _outputWork);
-	~timingManager();
+	int clearTaskList(Core core);
+	static TimingManager* getInstance();
+	~TimingManager();
 	void addFunction(RunType type, unsigned int activator, void (*referencToFunction)(void*), void* _addressOfData, int offset = 0, Core kerne = CORE1, unsigned int runCount = 0);
 	void tick(Core coreToTick);
 	void cycle();
 	void startHandlingPrimaryCore(bool killArduinoTask = false);
 	void printChain();
+	void setOutputWork(bool state);
 };
