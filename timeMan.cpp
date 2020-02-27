@@ -19,7 +19,7 @@ TimingManager::~TimingManager()
 		performWork(this, Core::CORE0);
 	}
 
-	if(outputWork) Serial.println("Deconstructor called!");
+	if (outputWork) Serial.println("Deconstructor called!");
 	clearTaskList(Core::CORE1);
 	TimingManager::instance = nullptr;
 }
@@ -141,7 +141,7 @@ void TimingManager::secondCoreLoop(void* _tmObj)
 		/////////////////////////////////////////////
 	}
 	tmObj->clearTaskList(Core::CORE0);
-	if (outputWork) Serial.println("Killing own task (core0)");
+	if (tmObj->outputWork) Serial.println("Killing own task (core0)");
 	vTaskDelete(NULL);
 }
 
@@ -151,7 +151,7 @@ void TimingManager::primaryCoreLoop(void* _tmObj) {
 		performWork(tmObj, CORE1);
 	}
 
-	if (outputWork) Serial.println("Killing own task (core1)");
+	if (tmObj->outputWork) Serial.println("Killing own task (core1)");
 	vTaskDelete(NULL);
 }
 
@@ -203,7 +203,7 @@ void TimingManager::setOutputWork(bool state)
 
 TimingManager* TimingManager::getInstance()
 {
-	if(instance == nullptr)
+	if (instance == nullptr)
 	{
 		instance = new TimingManager();
 	}
