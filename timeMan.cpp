@@ -11,16 +11,17 @@ TimingManager::TimingManager(bool _outputWork = false)
 TimingManager::~TimingManager()
 {
 	coreDeathSignal = true;
-	if (!coreReady[1] || true) {
-		performWork(this, Core::CORE1);
+	if (linkedListCoreHead[1] != nullptr)
+	{
+		clearTaskList(Core::CORE1);
 	}
 
-	if (!coreReady[0]) {
-		performWork(this, Core::CORE0);
+	if (linkedListCoreHead[0] != nullptr)
+	{
+		clearTaskList(Core::CORE0);
 	}
 
 	if (outputWork) Serial.println("Deconstructor called!");
-	clearTaskList(Core::CORE1);
 	TimingManager::instance = nullptr;
 }
 
@@ -43,6 +44,8 @@ int TimingManager::clearTaskList(Core core)
 	unsigned int clearedNodes = 0;
 
 	FunctionNode* currentNode = linkedListCoreHead[core];
+
+
 	while (currentNode != nullptr) {
 		FunctionNode* nextNode = currentNode->next;
 		if (outputWork) Serial.println(getCorePrefix(core) + " Freeing 0x" + String((unsigned long)currentNode));
@@ -50,6 +53,8 @@ int TimingManager::clearTaskList(Core core)
 		currentNode = nextNode;
 		++clearedNodes;
 	}
+
+	linkedListCoreHead[core] == nullptr;
 	if (outputWork) Serial.println(getCorePrefix(core) + "Freed " + String(clearedNodes) + " nodes");
 	return clearedNodes;
 }
@@ -68,29 +73,29 @@ void TimingManager::performWork(TimingManager* tmObj, Core core)
 #endif //  automaticTicking
 
 	FunctionNode* currentNode = tmObj->linkedListCoreHead[core];
-	bool deathSignal = tmObj->coreDeathSignal;
 
-	while (currentNode != nullptr && currentNode->data.functionReference != nullptr)
+	while (!(tmObj->coreDeathSignal)
+		&& currentNode != nullptr
+		&& currentNode->data.functionReference != nullptr)
 	{
 		functionData* currJob = &currentNode->data;
-		if (!deathSignal) {
-			if (currJob->typeOfCount == CYCLEJOB) {
-				if (tmObj->counter[core] % currJob->goal == 0) {
-					currJob->functionReference(currJob->addressOfData);
-					++currJob->timesRan;
-				}
+		if (currJob->typeOfCount == CYCLEJOB) {
+			if (tmObj->counter[core] % currJob->goal == 0) {
+				currJob->functionReference(currJob->addressOfData);
+				++currJob->timesRan;
 			}
-			else if (currJob->typeOfCount == MILISEC) {
-				if (millis() >= (currJob->lastTimeRan + currJob->goal)) {
-					currJob->lastTimeRan = millis(); //Using the newest time (BEFORE) the function has been executed. [Add a way to choose between before and after the execution?]
-					if (tmObj->outputWork) Serial.println("\nPerformed 0x" + String((unsigned long)currentNode) + " (Function reference:0x" + String((long)&currJob->functionReference) + ") on core" + xPortGetCoreID());
-					currJob->functionReference(currJob->addressOfData);
-					++currJob->timesRan;
-				}
+		}
+		else if (currJob->typeOfCount == MILISEC) {
+			if (millis() >= (currJob->lastTimeRan + currJob->goal)) {
+				currJob->lastTimeRan = millis(); //Using the newest time (BEFORE) the function has been executed. [Add a way to choose between before and after the execution?]
+				if (tmObj->outputWork) Serial.println("\nPerformed 0x" + String((unsigned long)currentNode) + " (Function reference:0x" + String((long)&currJob->functionReference) + ") on core" + xPortGetCoreID());
+				currJob->functionReference(currJob->addressOfData);
+				++currJob->timesRan;
 			}
 		}
 
-		if (isJobFinished(currJob)) {
+
+		if (!(tmObj->coreDeathSignal) && isJobFinished(currJob)) { //Once the deathSignal has been given, the core should not handle the removal of tasks anymore.
 			FunctionNode* nextNode = currentNode->next;
 
 			if (currentNode->prev != nullptr)
@@ -140,7 +145,7 @@ void TimingManager::secondCoreLoop(void* _tmObj)
 		TIMERG0.wdt_wprotect = 0;
 		/////////////////////////////////////////////
 	}
-	tmObj->clearTaskList(Core::CORE0);
+
 	if (tmObj->outputWork) Serial.println("Killing own task (core0)");
 	vTaskDelete(NULL);
 }
@@ -155,7 +160,7 @@ void TimingManager::primaryCoreLoop(void* _tmObj) {
 	vTaskDelete(NULL);
 }
 
-void TimingManager::startHandlingPrimaryCore(bool killArduinoTask) { //This will add a job 
+void TimingManager::startHandlingPrimaryCore(bool killArduinoTask) { //Whether or not to kill the Arduino task.
 
 	if (!coreReady[CORE1]) {
 		coreReady[CORE1] = true;
