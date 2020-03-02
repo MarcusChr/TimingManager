@@ -1,2 +1,3 @@
 To-do:
-- improve the comments 
+- Improve the comments 
+- Improve the readme.md ...
