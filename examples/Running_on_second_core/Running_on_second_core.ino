@@ -17,6 +17,7 @@ void farewellTheWorld(void * payload)
 
 void setup() {
   Serial.begin(500000);
+  
   timeMan->setOutputWork(true);
   timeMan->addFunction(TimingManager::MILISEC, 3000, greetTheWorld, nullptr, 0, TimingManager::CORE0); //The type of job (milisec or cycleJob) | how many miliseconds between the runs | a pointer to the payload. In this case there isn't any | the off-set | the core to run on. core0 is the secondary core.
   timeMan->addFunction(TimingManager::MILISEC, 5000, farewellTheWorld, nullptr, 2500, TimingManager::CORE1); //Notice that the off-set is set to 2500 ms. It's set to 2500 ms. so they won't both write via Serial at the same time.
