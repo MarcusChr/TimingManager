@@ -24,7 +24,7 @@ private:
 
 	static TimingManager* instance;
 	TimingManager(bool _outputWork);
-
+	TimingManager(const TimingManager&) = delete;
 
 
 	struct functionData

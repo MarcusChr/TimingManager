@@ -1,4 +1,3 @@
 To-do:
-- Translate/improve the comments
-- Add examples
-- Format the code
+- Improve the comments 
+- Improve the readme.md ...
