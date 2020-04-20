@@ -54,7 +54,7 @@ int TimingManager::clearTaskList(Core core)
 		++clearedNodes;
 	}
 
-	linkedListCoreHead[core] == nullptr;
+	linkedListCoreHead[core] == nullptr; //Note: Fix+test
 	if (outputWork) Serial.println(getCorePrefix(core) + "Freed " + String(clearedNodes) + " nodes");
 	return clearedNodes;
 }
