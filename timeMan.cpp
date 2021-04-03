@@ -2,27 +2,17 @@
 
 TimingManager* TimingManager::instance = nullptr;
 
-TimingManager::TimingManager(bool _outputWork = false)
+TimingManager::TimingManager()
 {
-	outputWork = _outputWork;
+	outputWork = false;
 	memset(linkedListCoreHead, 0x00, sizeof(linkedListCoreHead));
 }
 
 TimingManager::~TimingManager()
 {
-	coreDeathSignal = true;
-	if (linkedListCoreHead[1] != nullptr)
-	{
-		clearTaskList(Core::CORE1);
-	}
-
-	if (linkedListCoreHead[0] != nullptr)
-	{
-		clearTaskList(Core::CORE0);
-	}
-
+	kill();
 	if (outputWork) Serial.println("Deconstructor called!");
-	TimingManager::instance = nullptr;
+	instance = nullptr;
 }
 
 bool TimingManager::isJobFinished(functionData* currJob)
@@ -45,7 +35,6 @@ int TimingManager::clearTaskList(Core core)
 
 	FunctionNode* currentNode = linkedListCoreHead[core];
 
-
 	while (currentNode != nullptr) {
 		FunctionNode* nextNode = currentNode->next;
 		if (outputWork) Serial.println(getCorePrefix(core) + " Freeing 0x" + String((unsigned long)currentNode));
@@ -54,7 +43,7 @@ int TimingManager::clearTaskList(Core core)
 		++clearedNodes;
 	}
 
-	linkedListCoreHead[core] == nullptr; //Note: Fix+test
+	linkedListCoreHead[core] = nullptr;
 	if (outputWork) Serial.println(getCorePrefix(core) + "Freed " + String(clearedNodes) + " nodes");
 	return clearedNodes;
 }
@@ -263,4 +252,24 @@ void TimingManager::tick(Core coreToTick) {
 void TimingManager::cycle()
 {
 	performWork(this, CORE1);
+}
+
+void TimingManager::clear()
+{
+	coreDeathSignal = true;
+	if (linkedListCoreHead[1] != nullptr)
+	{
+		clearTaskList(Core::CORE1);
+	}
+
+	if (linkedListCoreHead[0] != nullptr)
+	{
+		clearTaskList(Core::CORE0);
+	}
+}
+
+void TimingManager::kill()
+{
+	clear();
+	memset(coreReady, 0x00, sizeof(coreReady));
 }

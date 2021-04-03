@@ -23,7 +23,7 @@ private:
 	bool coreReady[2] = { false, false };
 
 	static TimingManager* instance;
-	TimingManager(bool _outputWork);
+	TimingManager();
 	TimingManager(const TimingManager&) = delete;
 
 
@@ -62,6 +62,8 @@ public:
 	void addFunction(RunType type, unsigned int activator, void (*referencToFunction)(void*), void* _addressOfData, int offset = 0, Core kerne = CORE1, unsigned int runCount = 0);
 	void tick(Core coreToTick);
 	void cycle();
+	void clear();
+	void kill();
 	void startHandlingPrimaryCore(bool killArduinoTask = false);
 	void printChain();
 	void setOutputWork(bool state);
